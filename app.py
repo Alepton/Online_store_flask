@@ -2,14 +2,7 @@ from flask import Flask, render_template, url_for, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from cloudipsp import Api, Checkout
 
-api = Api(merchant_id=1396424,
-          secret_key='test')
-checkout = Checkout(api=api)
-data = {
-    "currency": "USD",
-    "amount": 10000
-}
-url = checkout.url(data).get('checkout_url')
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///shop.db'
@@ -35,6 +28,22 @@ def index():
     items = Item.query.order_by(Item.price).all()
     return render_template("index.html", data=items)
 
+@app.route('/buy/<int:id>') # создаем динамический параметр ссылки int - числовой ; id - имя которое передадим в функцию item_by(id)
+def item_by(id):
+    item = Item.query.get(id) # получаем из базы данных объект по id нажатой кнопки
+
+    # вставляем код из официальной документации
+    api = Api(merchant_id=1396424,  # id нашей компании, который выдается при регистрации на сайте
+              secret_key='test')    # secret_key - секретный ключ который так же выдается при регистрации, пока будем использовать тестовый
+    checkout = Checkout(api=api)    # создается страничка оплаты
+    data = {                        # данные которые мы передаем для оплаты
+        "currency": "BYN",
+        "amount": str(item.price) + "00"  # у объекта item считываем price, преобразуем его в строку и прибывам 00 копеек
+    }
+    url = checkout.url(data).get('checkout_url')
+    #return url посмотрим url ссылку при переходи на которую мы сможем выполнить оплату товара
+    #return str(id) # просто выведим id на страницу для проверки работы
+    return redirect(url) # выполняем переадресацию на url оплаты
 
 @app.route('/about')
 def about():
